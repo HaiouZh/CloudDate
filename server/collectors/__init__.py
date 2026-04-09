@@ -12,6 +12,7 @@ from server.collectors.process import collect_processes
 from server.collectors.docker_stats import collect_docker
 from server.collectors.system_info import collect_system_info
 from server.collectors.temperature import collect_temperature
+from server.collectors.services import collect_services, collect_failed_services
 
 __all__ = [
     "collect_cpu",
@@ -23,4 +24,6 @@ __all__ = [
     "collect_docker",
     "collect_system_info",
     "collect_temperature",
+    "collect_services",
+    "collect_failed_services",
 ]

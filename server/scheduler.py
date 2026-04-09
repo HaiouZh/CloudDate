@@ -19,6 +19,7 @@ from server.collectors.network import collect_network
 from server.collectors.process import collect_processes
 from server.collectors.docker_stats import collect_docker
 from server.collectors.temperature import collect_temperature
+from server.collectors.services import collect_services
 
 logger = logging.getLogger("clouddate.scheduler")
 
@@ -139,12 +140,14 @@ class Scheduler:
                 docker = await loop.run_in_executor(None, collect_docker)
                 disks = await loop.run_in_executor(None, collect_disk_usage)
                 temps = await loop.run_in_executor(None, collect_temperature)
+                services = await loop.run_in_executor(None, collect_services)
 
                 slow_data = {
                     "processes": procs,
                     "docker": docker,
                     "disks": disks,
                     "temperatures": temps,
+                    "services": services,
                 }
 
                 # Store in ring buffer

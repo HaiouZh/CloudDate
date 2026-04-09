@@ -555,6 +555,102 @@ input[type="range"]::-moz-range-thumb {
 }
 .docker-empty .empty-icon { font-size: 2rem; margin-bottom: 8px; }
 
+/* ---- Systemd Services ---- */
+.service-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.service-search-input {
+    flex: 1;
+    min-width: 150px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-xs);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color var(--transition);
+}
+.service-search-input:focus {
+    border-color: rgba(108,92,231,0.5);
+}
+.service-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.service-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.svc-tab {
+    padding: 5px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.svc-tab:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+.svc-tab.active {
+    background: rgba(108,92,231,0.2);
+    border-color: rgba(108,92,231,0.4);
+    color: var(--accent-purple);
+}
+
+.service-counts {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    display: flex;
+    gap: 10px;
+}
+.svc-count-running { color: var(--accent-green); }
+.svc-count-failed { color: var(--accent-coral); }
+
+.svc-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.svc-desc {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.72rem !important;
+}
+
+.svc-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+.svc-running { background: rgba(0,184,148,0.15); color: var(--accent-green); }
+.svc-exited { background: rgba(116,185,255,0.12); color: var(--accent-blue); }
+.svc-failed { background: rgba(225,112,85,0.15); color: var(--accent-coral); }
+.svc-dead { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.svc-other { background: rgba(253,203,110,0.12); color: var(--accent-gold); }
+
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -618,6 +714,13 @@ input[type="range"]::-moz-range-thumb {
     /* Hide User and Status columns on mobile for processes */
     .data-table .col-user,
     .data-table .col-status { display: none; }
+
+    /* Services: hide description, compact filter */
+    .col-svc-desc { display: none; }
+    .service-filter { gap: 8px; }
+    .service-search-input { min-width: 100px; padding: 6px 10px; font-size: 0.78rem; }
+    .svc-tab { padding: 4px 8px; font-size: 0.7rem; }
+    .svc-name { max-width: 140px; }
 
     /* System info */
     .sysinfo-grid { grid-template-columns: 1fr; gap: 6px; }

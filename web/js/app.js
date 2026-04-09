@@ -8,6 +8,9 @@ let isPaused = false;
 let currentInterval = 2.0;
 let uptimeStart = 0;
 let uptimeTimer = null;
+let _allServices = [];  // cached for filtering
+let _svcFilter = 'all';
+let _svcSearch = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     chartManager = new ChartManager();
@@ -81,6 +84,7 @@ function handleSlowMetrics(data) {
     if (data.docker) updateDockerTable(data.docker);
     if (data.disks) updateDiskBars(data.disks);
     if (data.temperatures) updateTemperatures(data.temperatures);
+    if (data.services !== undefined) updateServicesTable(data.services);
 }
 
 function handleSystemInfo(data) {
@@ -243,6 +247,86 @@ function updateTemperatures(temps) {
     container.innerHTML = html;
 }
 
+// -------- Services --------
+
+function updateServicesTable(services) {
+    const tbody = document.getElementById('services-tbody');
+    const emptyMsg = document.getElementById('services-empty');
+    const countsEl = document.getElementById('service-counts');
+    if (!tbody) return;
+
+    _allServices = services;
+
+    if (services.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        if (countsEl) countsEl.textContent = '';
+        return;
+    }
+
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    // Counts
+    const running = services.filter(s => s.sub === 'running').length;
+    const failed = services.filter(s => s.active === 'failed').length;
+    if (countsEl) {
+        let countHtml = `<span class="svc-count-running">${running} running</span>`;
+        if (failed > 0) countHtml += ` <span class="svc-count-failed">${failed} failed</span>`;
+        countsEl.innerHTML = countHtml;
+    }
+
+    renderFilteredServices();
+}
+
+function renderFilteredServices() {
+    const tbody = document.getElementById('services-tbody');
+    if (!tbody) return;
+
+    let filtered = _allServices;
+
+    // Apply tab filter
+    if (_svcFilter === 'running') {
+        filtered = filtered.filter(s => s.sub === 'running');
+    } else if (_svcFilter === 'failed') {
+        filtered = filtered.filter(s => s.active === 'failed');
+    } else if (_svcFilter === 'inactive') {
+        filtered = filtered.filter(s => s.active === 'inactive');
+    }
+
+    // Apply search
+    if (_svcSearch) {
+        const q = _svcSearch.toLowerCase();
+        filtered = filtered.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            s.description.toLowerCase().includes(q)
+        );
+    }
+
+    let html = '';
+    filtered.forEach(s => {
+        const activeColor = s.active === 'active' ? 'var(--accent-green)'
+            : s.active === 'failed' ? 'var(--accent-coral)'
+            : 'var(--text-muted)';
+        const subBadge = s.sub === 'running' ? 'svc-running'
+            : s.sub === 'exited' ? 'svc-exited'
+            : s.sub === 'failed' ? 'svc-failed'
+            : s.sub === 'dead' ? 'svc-dead'
+            : 'svc-other';
+        html += `<tr>
+            <td class="svc-name" title="${s.name}">${s.name.replace('.service', '')}</td>
+            <td style="color:${activeColor};font-weight:500">● ${s.active}</td>
+            <td><span class="svc-badge ${subBadge}">${s.sub}</span></td>
+            <td class="col-svc-desc svc-desc" title="${s.description}">${s.description}</td>
+        </tr>`;
+    });
+
+    if (filtered.length === 0) {
+        html = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">No matching services</td></tr>`;
+    }
+
+    tbody.innerHTML = html;
+}
+
 // -------- Controls --------
 
 function initControls() {
@@ -283,6 +367,28 @@ function initControls() {
                 pauseBtn.classList.remove('paused');
             }
         });
+    }
+
+    // Service filter tabs
+    const tabContainer = document.getElementById('service-tabs');
+    if (tabContainer) {
+        tabContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.svc-tab');
+            if (!btn) return;
+            tabContainer.querySelectorAll('.svc-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            _svcFilter = btn.dataset.filter;
+            renderFilteredServices();
+        });
+    }
+
+    // Service search
+    const svcSearch = document.getElementById('service-search');
+    if (svcSearch) {
+        svcSearch.addEventListener('input', Utils.debounce(() => {
+            _svcSearch = svcSearch.value.trim();
+            renderFilteredServices();
+        }, 200));
     }
 }
 

@@ -155,6 +155,42 @@
             </div>
         </section>
 
+        <!-- ======== Systemd Services ======== -->
+        <section class="glass-card" id="services-section">
+            <div class="card-title">
+                <span class="card-icon">⚙️</span> Systemd Services
+                <span class="service-counts" id="service-counts"></span>
+            </div>
+            <div class="service-filter">
+                <input type="text" id="service-search" placeholder="Search services..." class="service-search-input">
+                <div class="service-tabs" id="service-tabs">
+                    <button class="svc-tab active" data-filter="all">All</button>
+                    <button class="svc-tab" data-filter="running">Running</button>
+                    <button class="svc-tab" data-filter="failed">Failed</button>
+                    <button class="svc-tab" data-filter="inactive">Inactive</button>
+                </div>
+            </div>
+            <div class="table-wrapper" style="max-height:350px">
+                <table class="data-table" id="services-table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Active</th>
+                            <th>State</th>
+                            <th class="col-svc-desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="services-tbody">
+                        <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Waiting for data...</td></tr>
+                    </tbody>
+                </table>
+                <div class="docker-empty" id="services-empty" style="display:none">
+                    <div class="empty-icon">⚙️</div>
+                    <div>No systemd services detected (non-Linux system)</div>
+                </div>
+            </div>
+        </section>
+
         <!-- ======== Disk Usage & Temperature ======== -->
         <section class="section-grid">
             <div class="glass-card">
