@@ -28,6 +28,12 @@ services:
       - ALERT_MEM=${ALERT_MEM:-90}
       - ALERT_SWAP=${ALERT_SWAP:-80}
       - ALERT_DISK=${ALERT_DISK:-90}
-    # Security: no privileged mode needed
-    # Docker socket access is required for container monitoring
-    # Remove the docker.sock volume if you don't need Docker monitoring
+    # Share host PID namespace — required for systemd service monitoring
+    # (uses nsenter to access host's systemctl)
+    pid: "host"
+    # Security notes:
+    #  - No privileged mode needed
+    #  - pid:host allows reading host process info + nsenter to host systemctl
+    #  - Docker socket access is required for container monitoring
+    #  - Remove docker.sock volume if you don't need Docker monitoring
+    #  - Remove pid:host if you don't need systemd service monitoring

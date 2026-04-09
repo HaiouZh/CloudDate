@@ -5,7 +5,11 @@ LABEL description="Lightweight cloud server resource monitor"
 
 WORKDIR /app
 
-# Install dependencies first for Docker layer caching
+# Install nsenter (util-linux) for host systemd access
+RUN apt-get update && apt-get install -y --no-install-recommends util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (cached layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
