@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  clouddate:
+    build: .
+    container_name: clouddate
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5001}:${PORT:-5001}"
+    volumes:
+      # Mount host system info (read-only) for monitoring
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      # Mount Docker socket for container monitoring
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - PORT=${PORT:-5001}
+      - HOST=0.0.0.0
+      - TOKEN=${TOKEN:-}
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+      - HOST_ETC=/host/etc
+      - RING_BUFFER_SIZE=${RING_BUFFER_SIZE:-3600}
+      - SLEEP_DELAY=${SLEEP_DELAY:-30}
+      - PROCESS_LIMIT=${PROCESS_LIMIT:-50}
+      - ALERT_CPU=${ALERT_CPU:-90}
+      - ALERT_MEM=${ALERT_MEM:-90}
+      - ALERT_SWAP=${ALERT_SWAP:-80}
+      - ALERT_DISK=${ALERT_DISK:-90}
+    # Security: no privileged mode needed
+    # Docker socket access is required for container monitoring
+    # Remove the docker.sock volume if you don't need Docker monitoring

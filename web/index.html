@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CloudDate — Real-time Ubuntu cloud server resource monitoring dashboard">
+    <title>CloudDate — Server Monitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+    <div class="app-container">
+
+        <!-- ======== Header ======== -->
+        <header class="app-header" id="app-header">
+            <div class="header-brand">
+                <div>
+                    <div class="logo">CloudDate</div>
+                    <div class="subtitle">Server Resource Monitor</div>
+                </div>
+            </div>
+
+            <div class="controls-bar">
+                <div class="control-group">
+                    <span class="control-label">Refresh</span>
+                    <input type="range" id="interval-slider" min="0" max="100" value="33" step="1">
+                    <span class="interval-value" id="interval-display">2.0s</span>
+                </div>
+                <button class="btn-control" id="btn-pause">
+                    <span class="icon">⏸</span> Pause
+                </button>
+            </div>
+
+            <div class="header-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- ======== Stat Cards ======== -->
+        <section class="stat-grid">
+            <div class="stat-card" id="card-cpu">
+                <div class="stat-label">CPU Usage</div>
+                <div class="stat-value" id="cpu-value">--%</div>
+                <div class="stat-detail" id="load-value">-- -- --</div>
+            </div>
+            <div class="stat-card" id="card-mem">
+                <div class="stat-label">Memory</div>
+                <div class="stat-value" id="mem-value">--%</div>
+                <div class="stat-detail" id="mem-detail">-- / --</div>
+            </div>
+            <div class="stat-card" id="card-swap">
+                <div class="stat-label">Swap</div>
+                <div class="stat-value" id="swap-value">--%</div>
+                <div class="stat-detail" id="swap-detail">-- / --</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">↓ Download</div>
+                <div class="stat-value" id="net-down-value" style="font-size:1.2rem">0 B/s</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">↑ Upload</div>
+                <div class="stat-value" id="net-up-value" style="font-size:1.2rem">0 B/s</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Disk Read</div>
+                <div class="stat-value" id="disk-read-value" style="font-size:1.2rem">0 B/s</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Disk Write</div>
+                <div class="stat-value" id="disk-write-value" style="font-size:1.2rem">0 B/s</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="sys-uptime" style="font-size:1.1rem">--</div>
+            </div>
+        </section>
+
+        <!-- ======== Charts ======== -->
+        <section class="charts-grid">
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">⚡</span> CPU Usage</div>
+                <div class="chart-container" id="chart-cpu"></div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">🧠</span> Memory & Swap</div>
+                <div class="chart-container" id="chart-memory"></div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">🌐</span> Network I/O</div>
+                <div class="chart-container" id="chart-network"></div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">💾</span> Disk I/O</div>
+                <div class="chart-container" id="chart-disk-io"></div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">📈</span> Load Average</div>
+                <div class="chart-container" id="chart-load"></div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">🔲</span> Per-Core CPU</div>
+                <div class="chart-container" id="chart-cores"></div>
+            </div>
+        </section>
+
+        <!-- ======== Process & Docker Tables ======== -->
+        <section class="section-grid">
+            <!-- Processes -->
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">📋</span> Processes</div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="process-table">
+                        <thead>
+                            <tr>
+                                <th>PID</th>
+                                <th>Name</th>
+                                <th>CPU%</th>
+                                <th>MEM%</th>
+                                <th class="col-user">User</th>
+                                <th class="col-status">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="process-tbody">
+                            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Waiting for data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Docker -->
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">🐳</span> Docker Containers</div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="docker-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Image</th>
+                                <th>Status</th>
+                                <th>CPU%</th>
+                                <th>MEM%</th>
+                                <th>Uptime</th>
+                            </tr>
+                        </thead>
+                        <tbody id="docker-tbody">
+                        </tbody>
+                    </table>
+                    <div class="docker-empty" id="docker-empty">
+                        <div class="empty-icon">🐳</div>
+                        <div>No Docker containers detected</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======== Disk Usage & Temperature ======== -->
+        <section class="section-grid">
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">📁</span> Disk Usage</div>
+                <div id="disk-bars">
+                    <div style="text-align:center;color:var(--text-muted);padding:20px">Waiting for data...</div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><span class="card-icon">🌡️</span> Temperature Sensors</div>
+                <div class="temp-container" id="temp-container">
+                    <div class="temp-empty">Waiting for data...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======== System Info ======== -->
+        <section class="glass-card">
+            <div class="card-title"><span class="card-icon">ℹ️</span> System Information</div>
+            <div class="sysinfo-grid">
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Hostname</span>
+                    <span class="sysinfo-value" id="sys-hostname">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">OS</span>
+                    <span class="sysinfo-value" id="sys-os">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Kernel</span>
+                    <span class="sysinfo-value" id="sys-kernel">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Architecture</span>
+                    <span class="sysinfo-value" id="sys-arch">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">CPU Model</span>
+                    <span class="sysinfo-value" id="sys-cpu-model">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">CPU Cores</span>
+                    <span class="sysinfo-value" id="sys-cpu-cores">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Total Memory</span>
+                    <span class="sysinfo-value" id="sys-memory">--</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Total Swap</span>
+                    <span class="sysinfo-value" id="sys-swap">--</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/websocket.js"></script>
+    <script src="/js/charts.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

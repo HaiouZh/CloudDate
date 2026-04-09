@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+*.md
+cadvisor-master/
+netdata-master/
+node_exporter-master/
+.venv/
+.env
+*.log
