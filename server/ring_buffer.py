@@ -68,11 +68,16 @@ class MetricsStore:
     Central store for all metric buffers.
     Manages separate ring buffers for fast metrics (CPU, memory, etc.)
     and slow metrics (processes, docker, etc.).
+
+    Fast metrics are small (CPU/memory numbers) — keep 3600 points (~1h at 1s).
+    Slow metrics are large (process lists, docker, services) — keep fewer points
+    to avoid excessive memory usage on small machines.
     """
 
-    def __init__(self, buffer_size: int = 3600):
-        self.fast_metrics = RingBuffer(buffer_size)   # CPU, memory, swap, network, load, disk IO
-        self.slow_metrics = RingBuffer(buffer_size)   # Processes, docker, disk usage, temperature
+    def __init__(self):
+        from server.config import config
+        self.fast_metrics = RingBuffer(config.RING_BUFFER_SIZE)    # ~3600 → ~1h
+        self.slow_metrics = RingBuffer(config.SLOW_BUFFER_SIZE)    # ~120 → ~10min
 
     def clear_all(self) -> None:
         self.fast_metrics.clear()

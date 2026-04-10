@@ -32,7 +32,7 @@ logging.basicConfig(
 logger = logging.getLogger("clouddate")
 
 # Global instances
-store = MetricsStore(config.RING_BUFFER_SIZE)
+store = MetricsStore()
 manager = ConnectionManager(sleep_delay=config.SLEEP_DELAY)
 scheduler = Scheduler(store, manager)
 

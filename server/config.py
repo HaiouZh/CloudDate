@@ -21,11 +21,12 @@ class Config:
 
     # Ring buffer size (number of data points to keep)
     RING_BUFFER_SIZE: int = int(os.getenv("RING_BUFFER_SIZE", "3600"))
+    SLOW_BUFFER_SIZE: int = int(os.getenv("SLOW_BUFFER_SIZE", "120"))
 
     # Refresh intervals (seconds)
     DEFAULT_INTERVAL: float = 2.0
     MIN_FAST_INTERVAL: float = 0.5    # CPU, memory, swap, network, load
-    MIN_SLOW_INTERVAL: float = 3.0    # Processes, Docker, disk usage, temperature
+    MIN_SLOW_INTERVAL: float = 5.0    # Processes, Docker, disk usage, temperature
     MAX_INTERVAL: float = 30.0
 
     # Sleep mode
@@ -38,7 +39,7 @@ class Config:
     ALERT_DISK_PERCENT: float = float(os.getenv("ALERT_DISK", "90"))
 
     # Process list
-    PROCESS_LIMIT: int = int(os.getenv("PROCESS_LIMIT", "50"))
+    PROCESS_LIMIT: int = int(os.getenv("PROCESS_LIMIT", "30"))
 
 
 config = Config()

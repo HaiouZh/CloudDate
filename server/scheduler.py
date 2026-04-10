@@ -120,9 +120,15 @@ class Scheduler:
 
     async def _slow_loop(self) -> None:
         """
-        Slow collection loop for processes, docker, disk usage, temperature.
-        Runs at max(min_client_interval, 3s).
+        Slow collection loop with tiered scheduling via tick counter.
+        Base interval is ~5s. Different collectors run at different multiples:
+          - processes:   every tick     (~5s)
+          - temperature: every 2 ticks (~10s)
+          - docker:      every 3 ticks (~15s)
+          - disk_usage:  every 6 ticks (~30s)
+          - services:    every 12 ticks (~60s)
         """
+        tick = 0
         while self._running:
             try:
                 # Sleep if no clients
@@ -130,38 +136,52 @@ class Scheduler:
                     logger.debug("Slow loop sleeping...")
                     await self.manager.wait_for_wake()
                     logger.debug("Slow loop waking up")
+                    tick = 0  # Reset so first wake does a full collection
                     await asyncio.sleep(1)
 
                 start = time.time()
-
-                # Collect slow metrics (all in executor to avoid blocking)
                 loop = asyncio.get_event_loop()
-                procs = await loop.run_in_executor(None, collect_processes)
-                docker = await loop.run_in_executor(None, collect_docker)
-                disks = await loop.run_in_executor(None, collect_disk_usage)
-                temps = await loop.run_in_executor(None, collect_temperature)
-                services = await loop.run_in_executor(None, collect_services)
 
-                slow_data = {
-                    "processes": procs,
-                    "docker": docker,
-                    "disks": disks,
-                    "temperatures": temps,
-                    "services": services,
-                }
+                # --- Tiered collection ---
+                # Processes: every tick (~5s)
+                procs = await loop.run_in_executor(None, collect_processes)
+
+                # Temperature: every 2 ticks (~10s)
+                temps = await loop.run_in_executor(None, collect_temperature) if tick % 2 == 0 else None
+
+                # Docker: every 3 ticks (~15s)
+                docker = await loop.run_in_executor(None, collect_docker) if tick % 3 == 0 else None
+
+                # Disk usage: every 6 ticks (~30s)
+                disks = await loop.run_in_executor(None, collect_disk_usage) if tick % 6 == 0 else None
+
+                # Services: every 12 ticks (~60s)
+                services = await loop.run_in_executor(None, collect_services) if tick % 12 == 0 else None
+
+                # Build payload — only include fields that were collected this tick
+                slow_data = {"processes": procs}
+                if temps is not None:
+                    slow_data["temperatures"] = temps
+                if docker is not None:
+                    slow_data["docker"] = docker
+                if disks is not None:
+                    slow_data["disks"] = disks
+                if services is not None:
+                    slow_data["services"] = services
 
                 # Store in ring buffer
                 self.store.slow_metrics.append(slow_data)
 
-                # Check disk alerts
+                # Check disk alerts (only when disks were collected)
                 disk_alerts = []
-                for disk in disks:
-                    if disk["percent"] >= config.ALERT_DISK_PERCENT:
-                        disk_alerts.append({
-                            "type": "disk",
-                            "mount": disk["mount"],
-                            "percent": disk["percent"],
-                        })
+                if disks:
+                    for disk in disks:
+                        if disk["percent"] >= config.ALERT_DISK_PERCENT:
+                            disk_alerts.append({
+                                "type": "disk",
+                                "mount": disk["mount"],
+                                "percent": disk["percent"],
+                            })
 
                 # Broadcast
                 message = {
@@ -172,11 +192,21 @@ class Scheduler:
                 }
                 await self.manager.broadcast(message)
 
+                # Profiling log
+                elapsed = time.time() - start
+                collected = [k for k in slow_data if k != "processes"]
+                logger.debug(
+                    f"[slow_loop] tick={tick} elapsed={elapsed*1000:.0f}ms "
+                    f"extras={collected or 'processes_only'}"
+                )
+
                 # Calculate sleep time
                 elapsed = time.time() - start
                 interval = max(self.manager.min_interval, config.MIN_SLOW_INTERVAL)
                 sleep_time = max(0.5, interval - elapsed)
                 await asyncio.sleep(sleep_time)
+
+                tick += 1
 
             except asyncio.CancelledError:
                 break

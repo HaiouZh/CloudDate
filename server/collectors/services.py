@@ -12,12 +12,17 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 
 logger = logging.getLogger("clouddate.services")
 
 # Cache the command prefix (determined once on first call)
 _cmd_prefix = None
 _available = None
+
+# Service results cache (avoid repeated expensive nsenter calls)
+_services_cache = None
+_services_cache_time = 0.0
 
 
 def _detect_systemctl() -> tuple[bool, list[str]]:
@@ -121,7 +126,14 @@ def collect_services(filter_type: str = "service") -> list[dict]:
 
     Returns a sorted list of service dicts with name, load, active, sub, description.
     Active/running services first, then failed, then inactive.
+
+    Results are cached for 60 seconds to avoid repeated expensive nsenter calls.
     """
+    global _services_cache, _services_cache_time
+    now = time.time()
+    if _services_cache is not None and (now - _services_cache_time) < 60:
+        return _services_cache
+
     result = _run_systemctl(
         "list-units",
         f"--type={filter_type}",
@@ -140,6 +152,8 @@ def collect_services(filter_type: str = "service") -> list[dict]:
     priority = {"active": 0, "failed": 1, "activating": 2, "deactivating": 3, "inactive": 4}
     services.sort(key=lambda s: (priority.get(s["active"], 5), s["name"]))
 
+    _services_cache = services
+    _services_cache_time = now
     return services
 
 
